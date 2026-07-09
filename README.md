@@ -1,4 +1,4 @@
-# 🧩 random-dsa
+# 🧩 RANDOM DSA
 
 > My personal **DSA playground** — a *random* but growing mix of data structures & algorithms built from scratch, solved coding-interview problems (LeetCode & friends), and plain-English notes on how it all works. Built to *understand*, not just to use.
 
@@ -21,7 +21,7 @@ This repo intentionally mixes three kinds of content — hence *random*-dsa:
 | 🧮 | **Problem solutions** | Solved LeetCode / interview problems, often with multiple approaches compared. |
 | 📝 | **Notes** | Markdown write-ups on concepts, patterns, and complexity. |
 
-Everything is grouped into **topic folders** (`array/`, and more to come — `hash_table/`, `linked_list/`, `graph/`, …). It's a grab-bag by design: whatever I'm learning next lands here.
+Everything is grouped into **topic folders**. It's a grab-bag by design: whatever I'm learning next lands here.
 
 ---
 
@@ -45,7 +45,3 @@ Browse any folder to see what's there — each file opens with a concept glossar
 - 🐍 **Idiomatic Python** — dunder methods (`len`, `in`, indexing) make custom structures feel native.
 
 ---
-
-## 📄 License
-
-Personal learning project — free to read, fork, and learn from.
