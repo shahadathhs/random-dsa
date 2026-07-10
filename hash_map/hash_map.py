@@ -359,8 +359,16 @@ class HashMap:
         self.capacity = 8
         self.buckets = [[] for _ in range(self.capacity)]
 
+    def _hash(self, key):
+        total = 0
+
+        for char in str(key):
+            total += 31 * ord(char)
+
+        return total
+
     def _bucket_index(self, key):
-        return hash(key) % self.capacity
+        return self._hash(key) % self.capacity
 
 
 hash_map = HashMap()
