@@ -1,4 +1,4 @@
-"""Terms
+"""Dynamic Array
 
 This module documents the core concepts behind dynamic arrays.
 
