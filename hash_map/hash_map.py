@@ -355,14 +355,28 @@ Design Flow — How a Hash Map Comes Together:
 """
 HashMap/
 │
+├── INITIAL_CAPACITY = 8           # class constant — starting bucket count
+├── HASH_BASE = 31                 # class constant — multiplier in the rolling hash
+├── LOAD_FACTOR = 0.75             # class constant — resize threshold
+│
 ├── __init__()                     # constructor
 │
-└── helper methods
-    ├── _hash()
-    └── _bucket_index()
+├── helper methods
+│   ├── _hash()
+│   ├── _bucket_index()
+│   ├── _rehash()
+│   └── _resize()
+│
+└── core methods
+    └── put()
 """
 
 class HashMap:
+
+    # Class constants — tuning knobs grouped at the top of the class
+    INITIAL_CAPACITY = 8
+    HASH_BASE = 31
+    LOAD_FACTOR = 0.75
 
     # Constructor
     def __init__(self):
@@ -378,7 +392,7 @@ class HashMap:
             buckets (list[list]): Backing store of ``capacity`` empty lists.
         """
         self.size = 0
-        self.capacity = 8
+        self.capacity = self.INITIAL_CAPACITY
         self.buckets = [[] for _ in range(self.capacity)]
 
     # helper methods
@@ -386,9 +400,9 @@ class HashMap:
         """Compute a deterministic integer hash code for ``key``.
 
         Uses the classic polynomial rolling hash: for each character it
-        multiplies the running total by a prime (31) and then adds the
-        character's ASCII value. This gives small changes in the key a large
-        effect on the result (avalanche), spreading similar keys apart.
+        multiplies the running total by a prime (``HASH_BASE``) and then adds
+        the character's ASCII value. This gives small changes in the key a large
+        effect on the result, spreading similar keys apart.
 
         Args:
             key (str): The key to hash. Must be a string in this implementation.
@@ -405,9 +419,8 @@ class HashMap:
             raise TypeError("HashMap currently supports string keys only.")
 
         for char in str(key):
-            # Multiply the current total by a prime number (31)
-            # Then add the ASCII value of the character
-            total = total * 31 + ord(char)
+            # Multiply the current total by HASH_BASE, then add the ASCII value
+            total = total * self.HASH_BASE + ord(char)
 
         return total
 
@@ -426,7 +439,144 @@ class HashMap:
         """
         return self._hash(key) % self.capacity
 
+    def _rehash(self, old_buckets): # Time complexity: O(n) where n is the number of entries in the map
+        """Redistribute entries from ``old_buckets`` into the current backing store.
 
-hash_map = HashMap()
+        Because the bucket index depends on capacity (hash % capacity), entries
+        cannot be copied across as-is — each must be re-hashed into its new
+        position. :meth:`_bucket_index` uses ``self.capacity``, so the caller
+        must have already updated capacity and allocated ``self.buckets`` before
+        calling this.
 
-print("HashMap initialized with capacity:", hash_map.capacity)
+        Args:
+            old_buckets (list[list]): The previous backing store to read from.
+        """
+        for bucket in old_buckets:
+            for key, value in bucket:
+                new_index = self._bucket_index(key)
+                self.buckets[new_index].append((key, value))
+
+    def _resize(self): # Time complexity: O(n) where n is the number of entries in the map (dominated by the call to _rehash)
+        """Double the capacity and allocate a fresh backing store.
+
+        Only handles the array allocation; the actual redistribution of entries
+        is delegated to :meth:`_rehash`. Like dynamic-array resizing, the
+        occasional O(n) resize amortises to O(1) per insert across a sequence of
+        operations.
+        """
+        # Keep a reference to the old buckets before replacing them
+        old_buckets = self.buckets
+
+        # Double the capacity and allocate a fresh set of empty buckets
+        self.capacity *= 2
+        self.buckets = [[] for _ in range(self.capacity)]
+
+        # Redistribute every entry into its new bucket position
+        self._rehash(old_buckets)
+
+    # Core methods
+
+    def put(self, key, value): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the call to _resize if triggered)
+        """Insert or update a key–value pair in the hash map.
+
+        If the key already exists, its value is overwritten and no resize is
+        needed (the entry count does not change). For a genuinely new key, the
+        anticipated load factor ``(size + 1) / capacity`` is checked first: if
+        it would exceed ``LOAD_FACTOR`` the table is resized and rehashed, then
+        the bucket is re-fetched from the current table so the reference never
+        goes stale.
+
+        Args:
+            key (str): The key to insert or update.
+            value: The value associated with ``key``.
+        """
+        index = self._bucket_index(key)
+        bucket = self.buckets[index]
+
+        # Check if the key already exists in the bucket
+        for i, (k, v) in enumerate(bucket):
+            if k == key:
+                # Key exists; update its value (size unchanged, no resize)
+                bucket[i] = (key, value)
+                return
+
+        # New key — resize proactively if adding it would exceed the load
+        # factor. The check uses (size + 1) because the entry is not yet stored.
+        if (self.size + 1) / self.capacity > self.LOAD_FACTOR:
+            self._resize()
+            # Re-fetch the bucket from the current table; _resize replaced
+            # self.buckets, so the old reference would be stale.
+            index = self._bucket_index(key)
+            bucket = self.buckets[index]
+
+        # Append the new entry
+        bucket.append((key, value))
+        self.size += 1
+
+
+# ---------------------------------------------------------------------------
+# Demo / manual test harness
+#
+# Grouped into labelled sections so the output reads like a story:
+#   1. basic inserts (size grows, load factor climbs)
+#   2. collisions (separate chaining — multiple entries in one bucket)
+#   3. overwrite (updating an existing key keeps size unchanged)
+#   4. resize (exceeding the load factor doubles capacity and rehashes)
+#
+# To run:  python3 hash_map.py
+# ---------------------------------------------------------------------------
+
+def _section(title):
+    """Print a visual divider so each phase of the demo stands out."""
+    print(f"\n{'=' * 60}\n {title}\n{'=' * 60}")
+
+
+def _state(hm, note=""):
+    """Print size, capacity, load factor, and non-empty buckets in one line."""
+    load = hm.size / hm.capacity
+    chains = {
+        i: bucket for i, bucket in enumerate(hm.buckets) if bucket
+    }
+    prefix = f"{note:<28}" if note else ""
+    print(
+        f"{prefix} -> size={hm.size}, capacity={hm.capacity}, "
+        f"load={load:.2f}, occupied buckets={chains}"
+    )
+
+
+if __name__ == "__main__":
+    hm = HashMap()
+
+    # --- 1. Basic inserts ------------------------------------------------
+    _section("1. Basic inserts (each key lands in its hashed bucket)")
+    _state(hm, "empty map")
+    hm.put("apple", 1)
+    _state(hm, 'put("apple", 1)')
+    hm.put("banana", 2)
+    _state(hm, 'put("banana", 2)')
+    hm.put("cherry", 3)
+    _state(hm, 'put("cherry", 3)')
+
+    # --- 2. Collisions (separate chaining) ------------------------------
+    _section("2. Collisions (some keys share a bucket -> chain grows)")
+    hm.put("date", 4)
+    _state(hm, 'put("date", 4)')
+    hm.put("elderberry", 5)
+    _state(hm, 'put("elderberry", 5)')
+    hm.put("fig", 6)
+    _state(hm, 'put("fig", 6)')
+
+    # --- 3. Overwrite (update existing key, size stays same) ------------
+    _section("3. Overwrite (update existing key — size unchanged)")
+    print('Updating "apple" from 1 -> 99')
+    hm.put("apple", 99)
+    _state(hm, 'put("apple", 99)')
+
+    # --- 4. Resize (exceed load factor -> capacity doubles & rehashes) --
+    _section("4. Resize (7th insert crosses 0.75 -> capacity 8 -> 16)")
+    print("Adding one more entry; load factor will exceed 0.75 on insert.")
+    hm.put("grape", 7)
+    _state(hm, 'put("grape", 7)')
+    print("Note: capacity doubled and every entry was rehashed into new buckets.")
+
+    _section("Demo complete")
