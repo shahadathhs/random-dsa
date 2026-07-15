@@ -352,22 +352,78 @@ Design Flow — How a Hash Map Comes Together:
         12. The load factor drops, and average O(1) operations are restored.
 """
 
+"""
+HashMap/
+│
+├── __init__()                     # constructor
+│
+└── helper methods
+    ├── _hash()
+    └── _bucket_index()
+"""
+
 class HashMap:
 
+    # Constructor
     def __init__(self):
+        """Initialize an empty hash map.
+
+        Sets up the backing store with an initial capacity and a size of 0.
+        Uses separate chaining: each bucket is its own list that will hold
+        the (key, value) pairs which hash to the same index.
+
+        Attributes:
+            size (int): Number of key–value pairs currently stored.
+            capacity (int): Number of buckets allocated before a resize is needed.
+            buckets (list[list]): Backing store of ``capacity`` empty lists.
+        """
         self.size = 0
         self.capacity = 8
         self.buckets = [[] for _ in range(self.capacity)]
 
-    def _hash(self, key):
+    # helper methods
+    def _hash(self, key): # Time complexity: O(m) where m is the length of the key string
+        """Compute a deterministic integer hash code for ``key``.
+
+        Uses the classic polynomial rolling hash: for each character it
+        multiplies the running total by a prime (31) and then adds the
+        character's ASCII value. This gives small changes in the key a large
+        effect on the result (avalanche), spreading similar keys apart.
+
+        Args:
+            key (str): The key to hash. Must be a string in this implementation.
+
+        Returns:
+            int: The hash code for ``key`` (not yet reduced to a bucket index).
+
+        Raises:
+            TypeError: If ``key`` is not a string.
+        """
         total = 0
 
+        if not isinstance(key, str):
+            raise TypeError("HashMap currently supports string keys only.")
+
         for char in str(key):
-            total += 31 * ord(char)
+            # Multiply the current total by a prime number (31)
+            # Then add the ASCII value of the character
+            total = total * 31 + ord(char)
 
         return total
 
-    def _bucket_index(self, key):
+    def _bucket_index(self, key): # Time complexity: O(m) where m is the length of the key string (dominated by the call to _hash)
+        """Reduce ``key`` to a valid bucket index in the range ``[0, capacity)``.
+
+        Takes the raw hash code from :meth:`_hash` and folds it into the
+        backing array's index range with the standard modulo operation, so
+        every key lands in a real bucket regardless of how large its hash is.
+
+        Args:
+            key (str): The key whose bucket position is needed.
+
+        Returns:
+            int: A bucket index in the range ``0 <= index < capacity``.
+        """
         return self._hash(key) % self.capacity
 
 
