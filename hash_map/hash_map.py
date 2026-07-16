@@ -364,18 +364,21 @@ HashMap/
 ├── dunder methods                 # bracket / operator syntax -> core methods
 │   ├── __getitem__()              # value = map[key]   (raises KeyError)
 │   ├── __setitem__()              # map[key] = value
-│   └── __contains__()             # key in map
+│   ├── __delitem__()              # del map[key]       (raises KeyError)
+│   ├── __contains__()             # key in map
+│   └── __len__()                  # len(map)
 │
 ├── helper methods
 │   ├── _hash()
 │   ├── _bucket_index()
-│   ├── _find_entry()              # shared hash-and-scan for get/put/contains
+│   ├── _find_entry()              # shared hash-and-scan for get/put/remove/contains
 │   ├── _rehash()
 │   └── _resize()
 │
 └── core methods
     ├── get()
-    └── put()
+    ├── put()
+    └── remove()
 """
 
 class HashMap:
@@ -440,6 +443,18 @@ class HashMap:
         _, position = self._find_entry(key)
         return position != -1
 
+    def __delitem__(self, key):
+        """Enable bracket-notation deletion: ``del map[key]``.
+
+        Delegates to :meth:`remove`, which drops the entry from its chain and
+        raises KeyError if the key is absent.
+        """
+        self.remove(key)
+
+    def __len__(self):
+        """Enable ``len(map)`` — the number of key–value pairs stored."""
+        return self.size
+
     # helper methods
     def _hash(self, key): # Time complexity: O(m) where m is the length of the key string
         """Compute a deterministic integer hash code for ``key``.
@@ -484,13 +499,23 @@ class HashMap:
         """
         return self._hash(key) % self.capacity
 
-    def _find_entry(self, key): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the length of the bucket chain)
+    def _find_entry(self, key): # Time complexity: O(m + k) — m = key length (hashing), k = bucket chain length. Average O(m) since a bounded load factor keeps k ~ constant; worst O(m + n) if every key collides into one bucket.
         """Locate ``key``'s bucket and its position within that bucket.
 
         Hashes the key to its bucket, then scans the chain for a matching key.
-        Returns the bucket list itself (not just the value) so mutating callers
-        — :meth:`put`, and later ``remove`` — can act on the chain directly,
-        while read-only callers just index into it.
+        Returns the bucket list itself (not just the value) so callers can
+        modify it in place without performing a second lookup: mutating callers
+        — :meth:`put`, :meth:`remove` — act on the chain directly, while
+        read-only callers just index into it.
+
+        Complexity:
+            ``O(m + k)`` where ``m`` is the key length (:meth:`_hash` walks
+            every character) and ``k`` is the number of entries in the bucket.
+            The common ``O(1)`` average folds in two assumptions: a bounded
+            load factor keeps ``k`` roughly constant (enforced here by resizing),
+            and short keys keep ``m`` roughly constant (an assumption about the
+            input). The true worst case is ``O(m + n)`` when every key collides
+            into a single bucket.
 
         Args:
             key (str): The key to locate.
@@ -502,9 +527,9 @@ class HashMap:
         """
         bucket = self.buckets[self._bucket_index(key)]
 
-        for i, (bucket_key, _) in enumerate(bucket):
+        for position, (bucket_key, _) in enumerate(bucket):
             if bucket_key == key:
-                return bucket, i
+                return bucket, position
 
         return bucket, -1
 
@@ -602,6 +627,33 @@ class HashMap:
         # Append the new entry
         bucket.append((key, value))
         self.size += 1
+
+    def remove(self, key): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the length of the bucket chain)
+        """Delete the entry for ``key`` from the hash map.
+
+        Locates the entry via :meth:`_find_entry` and drops it from its chain.
+        With separate chaining no tombstone is needed: each bucket is an
+        independent list, so removing an entry from the middle of a chain does
+        not disturb the lookup path of any other key (unlike open addressing,
+        where a plain gap would break probe sequences). Bracket-notation
+        deletion (``del map[key]`` via :meth:`__delitem__`) is the operator
+        counterpart.
+
+        Args:
+            key (str): The key to delete.
+
+        Raises:
+            KeyError: If ``key`` is not found in the map.
+        """
+        bucket, i = self._find_entry(key)
+
+        if i == -1:
+            raise KeyError(key)
+
+        # del removes the (key, value) tuple in place; the neighbouring entries
+        # in the same chain keep their positions and stay reachable.
+        del bucket[i]
+        self.size -= 1
 
 
 # ---------------------------------------------------------------------------
@@ -704,5 +756,30 @@ if __name__ == "__main__":
     print(f'"nothing" in hm               -> {"nothing" in hm}')     # present (value is None)
     print(f'hm.get("nothing") is not None -> {hm.get("nothing") is not None}'
           "   <- the naive test WRONGLY reports absent")
+
+    # --- 8. Deletion: remove() and del map[key], plus len() ------------
+    _section("8. Deletion (remove / del map[key]) — no tombstones needed")
+    print(f'len(hm) before                -> {len(hm)}')             # __len__
+    # 8a. Build a real collision chain: "olive" hashes to the same bucket as
+    #     the existing "grape". Removing "grape" from the middle of that chain
+    #     must leave "olive" reachable — proof that separate chaining needs no
+    #     tombstone (unlike open addressing, where a gap would break probing).
+    hm.put("olive", 100)                 # joins "grape" in a shared bucket
+    shared = hm._bucket_index("grape")
+    print(f'bucket {shared} before remove       -> {hm.buckets[shared]}')
+    hm.remove("grape")                   # remove() -> drop from mid-chain
+    print(f'bucket {shared} after  remove       -> {hm.buckets[shared]}')
+    print(f'"olive" in hm                 -> {"olive" in hm}'
+          "   <- chain neighbour still reachable after remove")
+    _state(hm, 'hm.remove("grape")')
+    # 8b. del map[key] via __delitem__.
+    del hm["apple"]                      # __delitem__ -> remove()
+    _state(hm, 'del hm["apple"]')
+    # 8c. Removing an absent key raises KeyError.
+    try:
+        hm.remove("missing")
+    except KeyError as err:
+        print(f'hm.remove("missing")          -> raised KeyError({err})')
+    print(f'len(hm) after                 -> {len(hm)}')
 
     _section("Demo complete")
