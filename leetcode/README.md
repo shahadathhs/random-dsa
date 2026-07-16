@@ -40,7 +40,7 @@ Each solution imports `from _demo import section, check`; the Makefile sets
 ### Phase 1 — Arrays & Hash Maps
 
 - [x] `0001_two_sum.py` — Two Sum (Easy)
-- [ ] `0217_contains_duplicate.py` — Contains Duplicate (Easy)
+- [x] `0217_contains_duplicate.py` — Contains Duplicate (Easy)
 - [ ] `0242_valid_anagram.py` — Valid Anagram (Easy)
 - [ ] `0349_intersection_of_two_arrays.py` — Intersection of Two Arrays (Easy)
 

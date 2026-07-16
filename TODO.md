@@ -9,12 +9,12 @@
 
 ## Part 2 — LeetCode Practice
 
-### Phase 1 — Arrays & Hash Maps (Easy)
+### Phase 1 — Arrays & Hash Maps
 
 Classics that every software engineer should know.
 
 - [X] **Two Sum** (Hash Map) — complements, one-pass hash map
-- [ ] **Contains Duplicate** — membership testing, hash map / hash set intuition
+- [X] **Contains Duplicate** — membership testing, hash map / hash set intuition
 - [ ] **Valid Anagram** — counting frequencies, intro to frequency maps
 - [ ] **Intersection of Two Arrays** — hash sets, membership lookups
 
