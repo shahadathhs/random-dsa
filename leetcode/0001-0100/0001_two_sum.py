@@ -113,7 +113,7 @@ def two_sum(nums, target):
 # ---------------------------------------------------------------------------
 # Demo / manual test harness  (section/check live in leetcode/_demo.py)
 #
-# To run:  python3 leetcode/0001_two_sum.py
+# To run:  make run N=1
 # ---------------------------------------------------------------------------
 
 from _demo import section, check

@@ -27,17 +27,31 @@ Everything is grouped into **topic folders**. It's a grab-bag by design: whateve
 
 ## ⚡ Running the code
 
-No dependencies — just Python 3. Every file runs its own demo:
+No dependencies — just **Python 3** and **make**. Every file runs its own demo.
+
+### LeetCode solutions — via the Makefile
+
+Solutions live in `leetcode/<range>/<num>_<name>.py` (range folders of 100).
+Drive them by problem number:
 
 ```bash
-python3 <folder>/<file>.py     # e.g. python3 array/dynamic_array.py
-python3 leetcode/0001_two_sum.py
+make run N=1                             # run problem 1's demo (number auto-padded)
+make list                                # list every solved problem
+make test                                # run all demos
+make new N=217 NAME=contains_duplicate   # scaffold a new problem from the template
+make help                                # show all targets
 ```
 
-The data-structure files (`array/`, `hash_map/`) are fully self-contained. The
-`leetcode/` solutions share small demo helpers from `leetcode/_demo.py`; copy
-`leetcode/TEMPLATE.py` to start a new problem (see `leetcode/README.md` for the
-`<num>_<name>.py` naming convention).
+See [`leetcode/README.md`](leetcode/README.md) for the folder layout and naming convention.
+
+### Data-structure & algorithm modules — run directly
+
+The `array/` and `hash_map/` files are fully self-contained:
+
+```bash
+python3 array/dynamic_array.py
+make ds FILE=hash_map/hash_map.py        # equivalent, via make
+```
 
 Browse any folder to see what's there — each file opens with a concept glossary that explains itself.
 

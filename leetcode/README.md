@@ -1,25 +1,39 @@
 # LeetCode Solutions
 
-One problem per file. Start each new one by copying [`TEMPLATE.py`](TEMPLATE.py).
-Shared demo helpers (`section`, `check`) live in [`_demo.py`](_demo.py) so each
-solution imports them instead of re-declaring them.
+One problem per file, one file per problem. Solutions are grouped into
+**range-based subfolders** of 100 problems each so the folder never gets huge.
+
+## Layout
+
+```
+leetcode/
+├── _demo.py          # shared demo helpers (section, check)
+├── TEMPLATE.py       # copy this to start a new problem
+├── 0001-0100/
+│   └── 0001_two_sum.py
+├── 0101-0200/
+└── 0201-0300/
+```
 
 ## Naming convention
 
-```
-<4-digit-problem-number>_<snake_case_title>.py
-```
+- **Folder:** `<lo>-<hi>` in blocks of 100 — `0001-0100`, `0101-0200`, `0201-0300`, …
+- **File:** `<4-digit-number>_<snake_case_title>.py` — e.g. `0001_two_sum.py`, `0217_contains_duplicate.py`
 
-- Number is **zero-padded to 4 digits** so files sort in problem order (`0001`, `0088`, `0217`).
-- Title is the LeetCode title in `snake_case`.
+Zero-padding to 4 digits keeps everything sorting in problem order.
 
-Examples: `0001_two_sum.py`, `0217_contains_duplicate.py`, `0088_merge_sorted_array.py`
-
-Run any solution's demo directly:
+## Workflow (via the Makefile at the repo root)
 
 ```bash
-python3 leetcode/0001_two_sum.py
+make new N=217 NAME=contains_duplicate   # scaffold into the right range folder
+make run N=217                           # run one problem's demo (number auto-padded)
+make list                                # list every solved problem
+make test                                # run all demos
 ```
+
+`make new` computes the range folder automatically and copies `TEMPLATE.py`.
+Each solution imports `from _demo import section, check`; the Makefile sets
+`PYTHONPATH=leetcode` so that import resolves from any range subfolder.
 
 ## Progress
 

@@ -61,7 +61,7 @@ def solve(nums, target):
 # ---------------------------------------------------------------------------
 # Demo / manual test harness  (section/check live in leetcode/_demo.py)
 #
-# To run:  python3 leetcode/<num>_<name>.py
+# To run:  make run N=<num>
 # ---------------------------------------------------------------------------
 
 from _demo import section, check
