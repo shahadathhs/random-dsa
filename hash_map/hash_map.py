@@ -378,6 +378,12 @@ class HashMap:
     HASH_BASE = 31
     LOAD_FACTOR = 0.75
 
+    # Unique marker for "key not found" — distinct from any real value,
+    # including None. Used internally so ``get`` can tell a genuinely absent
+    # key apart from a key whose stored value happens to be None. Never leaks
+    # outside the class.
+    _MISSING = object()
+
     # Constructor
     def __init__(self):
         """Initialize an empty hash map.
@@ -394,6 +400,32 @@ class HashMap:
         self.size = 0
         self.capacity = self.INITIAL_CAPACITY
         self.buckets = [[] for _ in range(self.capacity)]
+
+    # dunder methods
+    def __getitem__(self, key):
+        """Enable bracket-notation lookup: ``value = map[key]``.
+
+        Raises KeyError when the key is absent. The actual scan lives in
+        :meth:`get`; this delegates to it with the private sentinel as the
+        default, then raises if the key was missing. Using the sentinel
+        (compared with ``is``) means a stored value of ``None`` is returned
+        correctly instead of being mistaken for absence.
+
+        Raises:
+            KeyError: If ``key`` is not found in the map.
+        """
+        value = self.get(key, self._MISSING)
+        if value is self._MISSING:
+            raise KeyError(key)
+        return value
+
+    def __setitem__(self, key, value):
+        """Enable bracket-notation assignment: ``map[key] = value``.
+
+        Delegates to :meth:`put`, which inserts a new entry or overwrites the
+        value if the key already exists.
+        """
+        self.put(key, value)
 
     # helper methods
     def _hash(self, key): # Time complexity: O(m) where m is the length of the key string
@@ -418,7 +450,7 @@ class HashMap:
         if not isinstance(key, str):
             raise TypeError("HashMap currently supports string keys only.")
 
-        for char in str(key):
+        for char in key:
             # Multiply the current total by HASH_BASE, then add the ASCII value
             total = total * self.HASH_BASE + ord(char)
 
@@ -475,6 +507,30 @@ class HashMap:
         self._rehash(old_buckets)
 
     # Core methods
+    def get(self, key, default=None): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the length of the bucket chain)
+        """Retrieve the value associated with ``key``, or ``default`` if absent.
+
+        Hashes the key to find its bucket, then scans the bucket for a matching
+        key. If found, returns the associated value; if not, returns ``default``
+        (``None`` by default) rather than raising. Bracket access (``map[key]``
+        via :meth:`__getitem__`) is the raising counterpart.
+
+        Args:
+            key (str): The key to look up.
+            default: The value to return when ``key`` is not present. Defaults
+                to ``None``.
+
+        Returns:
+            The value associated with ``key``, or ``default`` if not found.
+        """
+        index = self._bucket_index(key)
+        bucket = self.buckets[index]
+
+        for k, v in bucket:
+            if k == key:
+                return v
+
+        return default
 
     def put(self, key, value): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the call to _resize if triggered)
         """Insert or update a key–value pair in the hash map.
@@ -578,5 +634,23 @@ if __name__ == "__main__":
     hm.put("grape", 7)
     _state(hm, 'put("grape", 7)')
     print("Note: capacity doubled and every entry was rehashed into new buckets.")
+
+    # --- 5. Bracket notation (dunder methods) ---------------------------
+    _section("5. Bracket notation (__getitem__ / __setitem__)")
+    hm["kiwi"] = 8                       # __setitem__ -> put (new key)
+    _state(hm, 'hm["kiwi"] = 8')
+    hm["kiwi"] = 80                      # __setitem__ -> put (overwrite)
+    _state(hm, 'hm["kiwi"] = 80')
+    print(f'hm["kiwi"]                    -> {hm["kiwi"]}')          # __getitem__
+
+    # --- 6. Reads: get() vs map[key] ------------------------------------
+    _section("6. Reads (get returns default; brackets raise KeyError)")
+    print(f'hm.get("apple")               -> {hm.get("apple")}')     # found
+    print(f'hm.get("missing")             -> {hm.get("missing")}')   # absent -> None
+    print(f'hm.get("missing", 0)          -> {hm.get("missing", 0)}')  # absent -> default
+    try:
+        hm["missing"]                                                # absent -> raises
+    except KeyError as err:
+        print(f'hm["missing"]                 -> raised KeyError({err})')
 
     _section("Demo complete")
