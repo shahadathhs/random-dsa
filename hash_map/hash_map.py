@@ -361,13 +361,20 @@ HashMap/
 │
 ├── __init__()                     # constructor
 │
+├── dunder methods                 # bracket / operator syntax -> core methods
+│   ├── __getitem__()              # value = map[key]   (raises KeyError)
+│   ├── __setitem__()              # map[key] = value
+│   └── __contains__()             # key in map
+│
 ├── helper methods
 │   ├── _hash()
 │   ├── _bucket_index()
+│   ├── _find_entry()              # shared hash-and-scan for get/put/contains
 │   ├── _rehash()
 │   └── _resize()
 │
 └── core methods
+    ├── get()
     └── put()
 """
 
@@ -377,12 +384,6 @@ class HashMap:
     INITIAL_CAPACITY = 8
     HASH_BASE = 31
     LOAD_FACTOR = 0.75
-
-    # Unique marker for "key not found" — distinct from any real value,
-    # including None. Used internally so ``get`` can tell a genuinely absent
-    # key apart from a key whose stored value happens to be None. Never leaks
-    # outside the class.
-    _MISSING = object()
 
     # Constructor
     def __init__(self):
@@ -405,19 +406,19 @@ class HashMap:
     def __getitem__(self, key):
         """Enable bracket-notation lookup: ``value = map[key]``.
 
-        Raises KeyError when the key is absent. The actual scan lives in
-        :meth:`get`; this delegates to it with the private sentinel as the
-        default, then raises if the key was missing. Using the sentinel
-        (compared with ``is``) means a stored value of ``None`` is returned
-        correctly instead of being mistaken for absence.
+        Locates the key via :meth:`_find_entry` and returns its value, or
+        raises KeyError when the key is absent. Keying off the entry's
+        *position* (``-1`` means absent) rather than its value means a stored
+        value of ``None`` is returned correctly instead of being mistaken for
+        absence.
 
         Raises:
             KeyError: If ``key`` is not found in the map.
         """
-        value = self.get(key, self._MISSING)
-        if value is self._MISSING:
+        bucket, i = self._find_entry(key)
+        if i == -1:
             raise KeyError(key)
-        return value
+        return bucket[i][1]
 
     def __setitem__(self, key, value):
         """Enable bracket-notation assignment: ``map[key] = value``.
@@ -426,6 +427,18 @@ class HashMap:
         value if the key already exists.
         """
         self.put(key, value)
+
+    def __contains__(self, key):
+        """Enable membership tests: ``key in map``.
+
+        Locates the key via :meth:`_find_entry` and reports whether a matching
+        entry exists (position ``!= -1``). This keys off the entry's *presence*,
+        not its value, so a key whose stored value is ``None`` still counts as
+        present — unlike a naive ``get(key) is not None`` test, which would
+        wrongly report it absent.
+        """
+        _, position = self._find_entry(key)
+        return position != -1
 
     # helper methods
     def _hash(self, key): # Time complexity: O(m) where m is the length of the key string
@@ -470,6 +483,30 @@ class HashMap:
             int: A bucket index in the range ``0 <= index < capacity``.
         """
         return self._hash(key) % self.capacity
+
+    def _find_entry(self, key): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the length of the bucket chain)
+        """Locate ``key``'s bucket and its position within that bucket.
+
+        Hashes the key to its bucket, then scans the chain for a matching key.
+        Returns the bucket list itself (not just the value) so mutating callers
+        — :meth:`put`, and later ``remove`` — can act on the chain directly,
+        while read-only callers just index into it.
+
+        Args:
+            key (str): The key to locate.
+
+        Returns:
+            tuple[list, int]: ``(bucket, position)`` where ``bucket`` is the
+            chain the key hashes to, and ``position`` is the index of the
+            matching entry within it, or ``-1`` if the key is not present.
+        """
+        bucket = self.buckets[self._bucket_index(key)]
+
+        for i, (bucket_key, _) in enumerate(bucket):
+            if bucket_key == key:
+                return bucket, i
+
+        return bucket, -1
 
     def _rehash(self, old_buckets): # Time complexity: O(n) where n is the number of entries in the map
         """Redistribute entries from ``old_buckets`` into the current backing store.
@@ -523,14 +560,14 @@ class HashMap:
         Returns:
             The value associated with ``key``, or ``default`` if not found.
         """
-        index = self._bucket_index(key)
-        bucket = self.buckets[index]
+        bucket, i = self._find_entry(key)
 
-        for bucket_key, bucket_value in bucket:
-            if bucket_key == key:
-                return bucket_value
+        # i == -1 means the key was not in its bucket -> report the default.
+        if i == -1:
+            return default
 
-        return default
+        # bucket[i] is the matching (key, value) tuple; return its value.
+        return bucket[i][1]
 
     def put(self, key, value): # Time complexity: O(1) on average, O(n) in the worst case (dominated by the call to _resize if triggered)
         """Insert or update a key–value pair in the hash map.
@@ -546,24 +583,21 @@ class HashMap:
             key (str): The key to insert or update.
             value: The value associated with ``key``.
         """
-        index = self._bucket_index(key)
-        bucket = self.buckets[index]
+        bucket, i = self._find_entry(key)
 
-        # Check if the key already exists in the bucket
-        for i, (bucket_key, bucket_value) in enumerate(bucket):
-            if bucket_key == key:
-                # Key exists; update its value (size unchanged, no resize)
-                bucket[i] = (key, value)
-                return
+        # Key already exists; update its value in place (size unchanged, no
+        # resize needed since the entry count does not grow).
+        if i != -1:
+            bucket[i] = (key, value)
+            return
 
         # New key — resize proactively if adding it would exceed the load
         # factor. The check uses (size + 1) because the entry is not yet stored.
         if (self.size + 1) / self.capacity > self.LOAD_FACTOR:
             self._resize()
             # Re-fetch the bucket from the current table; _resize replaced
-            # self.buckets, so the old reference would be stale.
-            index = self._bucket_index(key)
-            bucket = self.buckets[index]
+            # self.buckets, so the bucket from _find_entry would be stale.
+            bucket = self.buckets[self._bucket_index(key)]
 
         # Append the new entry
         bucket.append((key, value))
@@ -624,9 +658,17 @@ if __name__ == "__main__":
 
     # --- 3. Overwrite (update existing key, size stays same) ------------
     _section("3. Overwrite (update existing key — size unchanged)")
-    print('Updating "apple" from 1 -> 99')
+    # 3a. Overwrite a key that sits alone in its bucket.
+    print('Updating "apple" from 1 -> 99 (alone in its bucket)')
     hm.put("apple", 99)
     _state(hm, 'put("apple", 99)')
+    # 3b. Overwrite a key that shares a bucket with another ("fig" and
+    #     "elderberry" collide). _find_entry must scan past "elderberry" and
+    #     land on "fig" mid-chain, updating it in place without touching the
+    #     neighbour or changing size.
+    print('Updating "fig" from 6 -> 66 (shares bucket 4 with "elderberry")')
+    hm.put("fig", 66)
+    _state(hm, 'put("fig", 66)')
 
     # --- 4. Resize (exceed load factor -> capacity doubles & rehashes) --
     _section("4. Resize (7th insert crosses 0.75 -> capacity 8 -> 16)")
@@ -652,5 +694,15 @@ if __name__ == "__main__":
         hm["missing"]                                                # absent -> raises
     except KeyError as err:
         print(f'hm["missing"]                 -> raised KeyError({err})')
+
+    # --- 7. Membership: `in` vs `get(...) is not None` ------------------
+    _section("7. Membership (__contains__ handles None values correctly)")
+    hm["nothing"] = None                 # a real entry whose value is None
+    _state(hm, 'hm["nothing"] = None')
+    print(f'"apple"   in hm               -> {"apple" in hm}')       # present
+    print(f'"missing" in hm               -> {"missing" in hm}')     # absent
+    print(f'"nothing" in hm               -> {"nothing" in hm}')     # present (value is None)
+    print(f'hm.get("nothing") is not None -> {hm.get("nothing") is not None}'
+          "   <- the naive test WRONGLY reports absent")
 
     _section("Demo complete")
