@@ -526,9 +526,9 @@ class HashMap:
         index = self._bucket_index(key)
         bucket = self.buckets[index]
 
-        for k, v in bucket:
-            if k == key:
-                return v
+        for bucket_key, bucket_value in bucket:
+            if bucket_key == key:
+                return bucket_value
 
         return default
 
@@ -550,8 +550,8 @@ class HashMap:
         bucket = self.buckets[index]
 
         # Check if the key already exists in the bucket
-        for i, (k, v) in enumerate(bucket):
-            if k == key:
+        for i, (bucket_key, bucket_value) in enumerate(bucket):
+            if bucket_key == key:
                 # Key exists; update its value (size unchanged, no resize)
                 bucket[i] = (key, value)
                 return
