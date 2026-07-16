@@ -15,7 +15,7 @@ Classics that every software engineer should know.
 
 - [X] **Two Sum** (Hash Map) — complements, one-pass hash map
 - [X] **Contains Duplicate** — membership testing, hash map / hash set intuition
-- [ ] **Valid Anagram** — counting frequencies, intro to frequency maps
+- [X] **Valid Anagram** — counting frequencies, intro to frequency maps
 - [ ] **Intersection of Two Arrays** — hash sets, membership lookups
 
 ### Phase 2 — Two Pointers
