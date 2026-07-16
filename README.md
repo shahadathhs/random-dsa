@@ -27,11 +27,17 @@ Everything is grouped into **topic folders**. It's a grab-bag by design: whateve
 
 ## ⚡ Running the code
 
-No dependencies — just Python 3. Every file is **self-contained** and runs its own demo:
+No dependencies — just Python 3. Every file runs its own demo:
 
 ```bash
 python3 <folder>/<file>.py     # e.g. python3 array/dynamic_array.py
+python3 leetcode/0001_two_sum.py
 ```
+
+The data-structure files (`array/`, `hash_map/`) are fully self-contained. The
+`leetcode/` solutions share small demo helpers from `leetcode/_demo.py`; copy
+`leetcode/TEMPLATE.py` to start a new problem (see `leetcode/README.md` for the
+`<num>_<name>.py` naming convention).
 
 Browse any folder to see what's there — each file opens with a concept glossary that explains itself.
 

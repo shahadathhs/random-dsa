@@ -111,33 +111,24 @@ def two_sum(nums, target):
 
 
 # ---------------------------------------------------------------------------
-# Demo / manual test harness
+# Demo / manual test harness  (section/check live in leetcode/_demo.py)
 #
 # To run:  python3 leetcode/0001_two_sum.py
 # ---------------------------------------------------------------------------
 
-def _section(title):
-    """Print a visual divider so each phase of the demo stands out."""
-    print(f"\n{'=' * 60}\n {title}\n{'=' * 60}")
-
-
-def _check(label, got, expected):
-    """Print a labelled PASS/FAIL comparison of an actual vs. expected result."""
-    status = "PASS" if got == expected else "FAIL"
-    print(f"[{status}] {label:<38} got={str(got):<10} expected={expected}")
-
+from _demo import section, check
 
 if __name__ == "__main__":
-    _section("1. Basic cases")
-    _check("two_sum([2,7,11,15], 9)", two_sum([2, 7, 11, 15], 9), [0, 1])
-    _check("two_sum([3,2,4], 6)", two_sum([3, 2, 4], 6), [1, 2])
+    section("1. Basic cases")
+    check("two_sum([2,7,11,15], 9)", two_sum([2, 7, 11, 15], 9), [0, 1])
+    check("two_sum([3,2,4], 6)", two_sum([3, 2, 4], 6), [1, 2])
 
-    _section("2. Edge cases")
-    _check("duplicates [3,3], target 6", two_sum([3, 3], 6), [0, 1])
-    _check("negatives [-3,4,3,90], target 0", two_sum([-3, 4, 3, 90], 0), [0, 2])
-    _check("zeros [0,4,0], target 0", two_sum([0, 4, 0], 0), [0, 2])
-    _check("no solution [1,2,3], target 100", two_sum([1, 2, 3], 100), None)
-    _check("single element [5], target 5", two_sum([5], 5), None)
-    _check("empty list [], target 0", two_sum([], 0), None)
+    section("2. Edge cases")
+    check("duplicates [3,3], target 6", two_sum([3, 3], 6), [0, 1])
+    check("negatives [-3,4,3,90], target 0", two_sum([-3, 4, 3, 90], 0), [0, 2])
+    check("zeros [0,4,0], target 0", two_sum([0, 4, 0], 0), [0, 2])
+    check("no solution [1,2,3], target 100", two_sum([1, 2, 3], 100), None)
+    check("single element [5], target 5", two_sum([5], 5), None)
+    check("empty list [], target 0", two_sum([], 0), None)
 
-    _section("Demo complete")
+    section("Demo complete")

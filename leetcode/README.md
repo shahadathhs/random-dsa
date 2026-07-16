@@ -1,6 +1,8 @@
 # LeetCode Solutions
 
-One problem per file. Start each new one by copying the root [`TEMPLATE.py`](../TEMPLATE.py).
+One problem per file. Start each new one by copying [`TEMPLATE.py`](TEMPLATE.py).
+Shared demo helpers (`section`, `check`) live in [`_demo.py`](_demo.py) so each
+solution imports them instead of re-declaring them.
 
 ## Naming convention
 

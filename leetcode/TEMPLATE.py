@@ -59,27 +59,18 @@ def solve(nums, target):
 
 
 # ---------------------------------------------------------------------------
-# Demo / manual test harness
+# Demo / manual test harness  (section/check live in leetcode/_demo.py)
 #
 # To run:  python3 leetcode/<num>_<name>.py
 # ---------------------------------------------------------------------------
 
-def _section(title):
-    """Print a visual divider so each phase of the demo stands out."""
-    print(f"\n{'=' * 60}\n {title}\n{'=' * 60}")
-
-
-def _check(label, got, expected):
-    """Print a labelled PASS/FAIL comparison of an actual vs. expected result."""
-    status = "PASS" if got == expected else "FAIL"
-    print(f"[{status}] {label:<38} got={str(got):<10} expected={expected}")
-
+from _demo import section, check
 
 if __name__ == "__main__":
-    _section("1. Basic cases")
-    # _check("solve(...)", solve(...), expected)
+    section("1. Basic cases")
+    # check("solve(...)", solve(...), expected)
 
-    _section("2. Edge cases")
+    section("2. Edge cases")
     # empty input, single element, duplicates, negatives, no-solution -> None ...
 
-    _section("Demo complete")
+    section("Demo complete")
