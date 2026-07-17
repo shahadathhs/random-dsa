@@ -335,6 +335,26 @@ Set:
 """
 
 """
+Hash Set:
+    A set implemented on top of a hash map. Because a set only cares about
+    whether a key exists (not about a value), a HashSet can delegate every
+    operation to an ordinary HashMap: ``add`` stores the key with a throwaway
+    value, ``contains`` is a membership test, and ``remove`` deletes the entry.
+    The value is just a placeholder that the map requires — it is never read.
+"""
+
+"""
+Composition / Delegation (Reuse):
+    A design principle: instead of duplicating already-tested logic, build one
+    abstraction on top of another. A HashSet reuses a HashMap, which itself
+    reuses a dynamic array of lists (the buckets). Each layer trusts the one
+    beneath it, so collision handling, resizing, and hashing are written and
+    debugged exactly once.
+
+        HashSet  ->  HashMap  ->  Dynamic Array (buckets)  ->  Lists (chains)
+"""
+
+"""
 Design Flow — How a Hash Map Comes Together:
     A narrative tying every concept above into a single chain of reasoning:
 
@@ -379,6 +399,23 @@ HashMap/
     ├── get()
     ├── put()
     └── remove()
+"""
+
+"""
+HashSet/                           # delegates entirely to a HashMap
+│
+├── __init__()                     # constructor — wraps a fresh HashMap
+│
+├── core methods
+│   ├── add()                      # map.put(key, True)
+│   ├── contains()                 # key in map
+│   └── remove()                   # map.remove(key)
+│
+└── dunder methods
+    ├── __contains__()             # key in set  -> contains(key)
+    ├── __len__()                  # len(set)    -> len(map)
+    ├── __iter__()                 # for key in set (walks map.buckets)
+    └── __str__()                  # {'a', 'b', 'c'}
 """
 
 class HashMap:
@@ -656,6 +693,69 @@ class HashMap:
         self.size -= 1
 
 
+class HashSet:
+    """A collection of unique keys backed by a HashMap.
+
+    A set is conceptually "a hash map where every value is ignored." Rather
+    than duplicating collision handling, resizing, and hashing, this class
+    delegates every operation to a fully-tested HashMap. Each key is stored
+    with a placeholder value (``True``) that is never read.
+
+    Composition:
+        HashSet  ->  HashMap  ->  Dynamic Array (buckets)  ->  Lists (chains)
+
+    All operations inherit the HashMap's average O(1) complexity.
+    """
+
+    def __init__(self):
+        """Initialize an empty set backed by a fresh HashMap."""
+        self.map = HashMap()
+
+    def add(self, key): # Time complexity: O(1) on average, O(n) worst case (via map.put)
+        """Insert ``key`` into the set.
+
+        If the key is already present this is a no-op — ``put`` overwrites the
+        placeholder value, but since it is never read, nothing effectively
+        changes and the size stays the same.
+        """
+        self.map.put(key, True)
+
+    def contains(self, key): # Time complexity: O(1) on average, O(n) worst case (via map.__contains__)
+        """Report whether ``key`` is in the set."""
+        return key in self.map
+
+    def remove(self, key): # Time complexity: O(1) on average, O(n) worst case (via map.remove)
+        """Remove ``key`` from the set.
+
+        Raises:
+            KeyError: If ``key`` is not in the set.
+        """
+        self.map.remove(key)
+
+    def __contains__(self, key): # Time complexity: same as contains()
+        """Enable ``key in set``."""
+        return self.contains(key)
+
+    def __len__(self): # Time complexity: O(1) (returns the map's stored size)
+        """Enable ``len(set)`` — the number of keys stored."""
+        return len(self.map)
+
+    def __iter__(self): # Time complexity: O(n) where n is the number of keys
+        """Yield each key in the set (enables ``for key in set``).
+
+        Walks the backing HashMap's buckets directly. Iteration order follows
+        the bucket layout, which shifts on every resize — no ordering is
+        guaranteed.
+        """
+        for bucket in self.map.buckets:
+            for key, _ in bucket:
+                yield key
+
+    def __str__(self): # Time complexity: O(n) where n is the number of keys
+        """Return a readable representation: ``{'a', 'b', 'c'}``."""
+        return "{" + ", ".join(repr(key) for key in self) + "}"
+
+
 # ---------------------------------------------------------------------------
 # Demo / manual test harness
 #
@@ -664,6 +764,11 @@ class HashMap:
 #   2. collisions (separate chaining — multiple entries in one bucket)
 #   3. overwrite (updating an existing key keeps size unchanged)
 #   4. resize (exceeding the load factor doubles capacity and rehashes)
+#   5. bracket notation (__getitem__ / __setitem__)
+#   6. reads (get returns default; brackets raise KeyError)
+#   7. membership (__contains__ handles None values correctly)
+#   8. deletion (remove / del map[key] — no tombstones needed)
+#   9. hash set (add / contains / remove — delegates to HashMap)
 #
 # To run:  python3 hash_map.py
 # ---------------------------------------------------------------------------
@@ -781,5 +886,26 @@ if __name__ == "__main__":
     except KeyError as err:
         print(f'hm.remove("missing")          -> raised KeyError({err})')
     print(f'len(hm) after                 -> {len(hm)}')
+
+    # --- 9. HashSet (a set built on top of HashMap) ---------------------
+    _section("9. HashSet (add / contains / remove — delegates to HashMap)")
+    fruits = HashSet()
+    print(f"empty set                     -> {fruits}")
+    fruits.add("apple")
+    fruits.add("banana")
+    fruits.add("cherry")
+    print(f'after add apple/banana/cherry -> {fruits}  (len={len(fruits)})')
+    # Adding a duplicate is a no-op: put overwrites the placeholder value, but
+    # since we never read it, nothing changes and the size stays the same.
+    fruits.add("apple")
+    print(f'add("apple") again (no-op)    -> {fruits}  (len={len(fruits)})')
+    print(f'"apple"   in fruits           -> {"apple" in fruits}')
+    print(f'"missing" in fruits           -> {"missing" in fruits}')
+    fruits.remove("banana")
+    print(f'remove("banana")              -> {fruits}  (len={len(fruits)})')
+    try:
+        fruits.remove("missing")
+    except KeyError as err:
+        print(f'remove("missing")             -> raised KeyError({err})')
 
     _section("Demo complete")
