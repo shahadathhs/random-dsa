@@ -47,7 +47,7 @@ Each solution imports `from _demo import section, check`; the Makefile sets
 ### Phase 2 — Two Pointers
 
 - [x] `0125_valid_palindrome.py` — Valid Palindrome (Easy)
-- [ ] `0088_merge_sorted_array.py` — Merge Sorted Array (Easy)
+- [x] `0088_merge_sorted_array.py` — Merge Sorted Array (Easy)
 - [ ] `0977_squares_of_a_sorted_array.py` — Squares of a Sorted Array (Easy)
 - [ ] `0026_remove_duplicates_from_sorted_array.py` — Remove Duplicates from Sorted Array (Easy)
 

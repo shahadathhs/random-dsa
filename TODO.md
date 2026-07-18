@@ -21,7 +21,7 @@ Classics that every software engineer should know.
 ### Phase 2 — Two Pointers
 
 - [X] **Valid Palindrome** — left/right pointers
-- [ ] **Merge Sorted Array** — in-place thinking
+- [X] **Merge Sorted Array** — in-place thinking
 - [ ] **Squares of a Sorted Array** — two-pointer intuition
 - [ ] **Remove Duplicates from Sorted Array** — slow/fast pointer variation
 
