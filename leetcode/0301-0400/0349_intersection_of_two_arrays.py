@@ -56,11 +56,23 @@ Result Set:
 """
 
 """
+Build the Lookup from the Smaller Array:
+    The lookup set is queried once per element of the array we walk, but its
+    build cost and footprint scale with the size of the array we hash. Hashing
+    the smaller input therefore shrinks both the build pass and the lookup's
+    memory without changing the result — intersection is symmetric. With the
+    constraints (<= 1000 per side) this rarely matters, but it costs nothing
+    and pays off when the inputs are lopsided (e.g. 5 vs 1000).
+"""
+
+"""
 Time-Space Trade-off:
-    - Two sets (recommended): O(n + m) time, O(n + m) space — one lookup set
-      plus a result set; the obvious hash-based solution.
-    - Built-in `&`         : O(n + m) time, O(n + m) space — same complexity,
-      just expressed as `set(nums1) & set(nums2)`; concise and idiomatic.
+    - Two sets (recommended): O(n + m) time, O(min(n, m) + result) space —
+      the lookup is built from the *smaller* array, so it never exceeds
+      min(n, m) entries; the result set is bounded by the same.
+    - Built-in `&`         : O(n + m) time, O(n + m) space — same asymptotic
+      time, but CPython builds a set for *both* inputs, so memory peaks higher
+      than the asymmetric version. Concise and idiomatic.
     - Boolean array        : O(n + m) time, O(1001) = O(1) space — viable only
       because the constraints pin values to 0..1000; a fixed-size presence
       array replaces the lookup set. Useful when the value range is small and
@@ -73,19 +85,24 @@ Time-Space Trade-off:
 """
 0349_intersection_of_two_arrays module/
 |
-|-- intersection()          # two sets  — O(n + m) time, O(n + m) space
-`-- intersection_builtin()  # set `&`   — O(n + m) time, O(n + m) space
+|-- intersection()          # two sets, smaller as lookup — O(n + m) time, O(min(n, m) + result) space
+`-- intersection_builtin()  # set `&`                        — O(n + m) time, O(n + m) space
 """
 
 
 def intersection(nums1, nums2):
     """Return the unique values present in both ``nums1`` and ``nums2``.
 
-    Builds a lookup set from ``nums2``, then walks ``nums1`` adding each value
-    that the lookup contains into a result set, which deduplicates for free.
+    Builds the lookup set from the *smaller* input, then walks the *larger* one
+    collecting every value the lookup contains into a result set (which
+    deduplicates for free). Intersection is symmetric, so the choice of which
+    side to hash is purely a cost optimisation: hashing fewer elements shrinks
+    both the build pass and the lookup's memory footprint.
 
-    Time:  O(n + m)   — one pass to build the lookup (m), one to scan (n).
-    Space: O(n + m)   — lookup set (<= m) plus result set (<= min(n, m)).
+    Time:  O(n + m)        — one pass to build the lookup (min(n, m)), one to
+                             scan the other array (max(n, m)).
+    Space: O(min(n, m) + r) — lookup set (<= min(n, m)) plus result set
+                             (r <= min(n, m)).
 
     Args:
         nums1 (list[int]): First input array.
@@ -94,11 +111,19 @@ def intersection(nums1, nums2):
     Returns:
         list[int]: The unique values appearing in both arrays, in any order.
     """
-    lookup = set(nums2)   # O(m) build; O(1) average membership test.
-    result = set()        # Set (not list) so repeats collapse automatically.
+    # Hash the smaller array so the lookup set — and its build pass — stay
+    # small. The other array is what we iterate.
+    if len(nums1) < len(nums2):
+        lookup = set(nums1)
+        other = nums2
+    else:
+        lookup = set(nums2)
+        other = nums1
 
-    for num in nums1:
-        # A value in nums1 is in the intersection iff nums2 also has it.
+    result = set()  # Set (not list) so repeats collapse automatically.
+
+    for num in other:
+        # A value is in the intersection iff the other array also has it.
         if num in lookup:
             result.add(num)
 
