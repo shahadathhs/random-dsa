@@ -23,7 +23,7 @@ Classics that every software engineer should know.
 - [X] **Valid Palindrome** — left/right pointers
 - [X] **Merge Sorted Array** — in-place thinking
 - [X] **Squares of a Sorted Array** — two-pointer intuition
-- [ ] **Remove Duplicates from Sorted Array** — slow/fast pointer variation
+- [X] **Remove Duplicates from Sorted Array** — slow/fast pointer variation
 
 ### Phase 3 — Dynamic Array Thinking
 
