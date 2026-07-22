@@ -28,5 +28,5 @@ Classics that every software engineer should know.
 ### Phase 3 — Dynamic Array Thinking
 
 - [X] **Remove Element** — shifting vs. overwriting
-- [ ] **Move Zeroes** — in-place operations
+- [X] **Move Zeroes** — in-place operations
 - [ ] **Rotate Array** — multiple approaches and trade-offs
