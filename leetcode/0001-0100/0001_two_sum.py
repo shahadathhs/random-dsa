@@ -6,7 +6,8 @@ indices of the two numbers that add up to ``target``.
 LeetCode: https://leetcode.com/problems/two-sum/
 Difficulty: Easy
 
-Documents the one-pass hash-map approach: trade O(n) memory for O(n) time.
+Documents three approaches, trading time for space and exploiting input
+structure (sortedness).
 """
 
 """
@@ -65,15 +66,43 @@ One Pass:
 """
 
 """
+Brute Force:
+    The most direct strategy: try every possible pair. It is simple and needs no
+    extra memory, but its O(n^2) time makes it impractical for large inputs. It
+    is useful as a baseline and correctness reference.
+"""
+
+"""
+Two Pointers:
+    A technique that uses two indices moving toward each other from opposite ends
+    of a SORTED array. If the current sum is too small, advance the left pointer
+    (to increase it); if too large, retreat the right pointer (to decrease it).
+    This finds the pair in O(n) time using O(1) extra space.
+"""
+
+"""
+Index Invalidation (sorted caveat):
+    The two-pointer method requires a sorted array, but sorting reorders
+    elements and therefore destroys the original indices. Its returned indices
+    refer to the SORTED array, not the caller's original array. To report
+    original indices you must pair each value with its original index BEFORE
+    sorting.
+"""
+
+"""
 Time-Space Trade-off:
-    - Brute force : O(n^2) time, O(1) space  — try every pair.
-    - Hash map    : O(n)   time, O(n) space  — memory buys speed (this file).
+    Different solutions to the same problem balance running time against memory:
+        - Brute force  : O(n^2) time, O(1) space  — no extra memory.
+        - Hash map     : O(n)   time, O(n) space  — memory buys speed.
+        - Two pointers : O(n)   time, O(1) space  — but requires sorted input.
 """
 
 """
 0001_two_sum module/
-│
-└── two_sum()   # one-pass hash map — O(n) time, O(n) space
+|
+|-- two_sum()              # hash map      — O(n)   time, O(n) space
+|-- two_sum_brute_force()  # nested loops  — O(n^2) time, O(1) space
+`-- two_sum_sorted()       # two pointers  — O(n)   time, O(1) space (sorted input)
 """
 
 
@@ -110,25 +139,113 @@ def two_sum(nums, target):
     return None  # No pair sums to the target.
 
 
+def two_sum_brute_force(nums, target):
+    """Return indices of the two numbers that sum to ``target`` by trying every pair.
+
+    Time:  O(n^2) — every pair (i, j) is examined.
+    Space: O(1)   — no auxiliary storage.
+
+    Args:
+        nums (list[int]): The list of integers to search.
+        target (int): The target sum.
+
+    Returns:
+        list[int] | None: The two indices whose values sum to ``target``,
+        or None if no such pair exists.
+    """
+    # Iterate through each number, pairing it with every other number.
+    for i, first in enumerate(nums):
+
+        for j in range(i + 1, len(nums)):
+            second = nums[j]
+
+            # Check if the current pair sums to the target.
+            if first + second == target:
+                return [i, j]
+
+    return None  # Return None if no solution is found.
+
+
+def two_sum_sorted(nums, target):
+    """Return indices of the two numbers that sum to ``target`` in a SORTED array.
+
+    Uses the two-pointer technique from both ends inward.
+
+    Time:  O(n)   — each pointer moves inward at most n times total.
+    Space: O(1)   — only two indices are tracked.
+
+    Note:
+        ``nums`` MUST already be sorted in non-decreasing order. The returned
+        indices refer to the sorted array — see the "Index Invalidation" note
+        above if you need indices into an unsorted original.
+
+    Args:
+        nums (list[int]): A list of integers sorted in non-decreasing order.
+        target (int): The target sum.
+
+    Returns:
+        list[int] | None: The two indices whose values sum to ``target``,
+        or None if no such pair exists.
+    """
+    left, right = 0, len(nums) - 1
+
+    while left < right:
+        # Calculate the current sum of the two numbers at the pointers.
+        current_sum = nums[left] + nums[right]
+
+        # Check if the current sum matches the target.
+        if current_sum == target:
+            return [left, right]
+
+        # Sum too small -> advance left to increase it.
+        elif current_sum < target:
+            left += 1
+
+        # Sum too large -> retreat right to decrease it.
+        else:
+            right -= 1
+
+    return None  # Return None if no solution is found.
+
+
 # ---------------------------------------------------------------------------
 # Demo / manual test harness  (section/check live in leetcode/_demo.py)
+#
+# Verifies all three approaches agree on shared cases, then probes edge cases:
+# negatives, zeros, duplicates, no-solution, and tiny inputs.
 #
 # To run:  make run N=1
 # ---------------------------------------------------------------------------
 
 from _demo import section, check
 
-if __name__ == "__main__":
-    section("1. Basic cases")
-    check("two_sum([2,7,11,15], 9)", two_sum([2, 7, 11, 15], 9), [0, 1])
-    check("two_sum([3,2,4], 6)", two_sum([3, 2, 4], 6), [1, 2])
 
-    section("2. Edge cases")
+if __name__ == "__main__":
+    # --- 1. Hash map vs. brute force agree on the same (unsorted) input ----
+    section("1. Hash map vs. brute force (order-independent inputs)")
+    nums = [2, 7, 11, 15]
+    check("two_sum([2,7,11,15], 9)", two_sum(nums, 9), [0, 1])
+    check("two_sum_brute_force(..., 9)", two_sum_brute_force(nums, 9), [0, 1])
+
+    # --- 2. Two-pointer method on a sorted array --------------------------
+    section("2. Two pointers (requires a sorted array)")
+    check("two_sum_sorted([2,7,11,15], 26)",
+          two_sum_sorted([2, 7, 11, 15], 26), [2, 3])
+
+    # --- 3. Edge cases ----------------------------------------------------
+    section("3. Edge cases")
+    # Duplicates: the same value used at two different indices.
     check("duplicates [3,3], target 6", two_sum([3, 3], 6), [0, 1])
+    # Negative numbers and a negative target.
     check("negatives [-3,4,3,90], target 0", two_sum([-3, 4, 3, 90], 0), [0, 2])
+    # Zeros pairing to zero.
     check("zeros [0,4,0], target 0", two_sum([0, 4, 0], 0), [0, 2])
+    # No valid pair exists -> None.
     check("no solution [1,2,3], target 100", two_sum([1, 2, 3], 100), None)
+    # Fewer than two elements -> None.
     check("single element [5], target 5", two_sum([5], 5), None)
     check("empty list [], target 0", two_sum([], 0), None)
+    # An element must not be paired with itself.
+    check("no self-pair [3,2,4], target 6", two_sum([3, 2, 4], 6), [1, 2])
 
     section("Demo complete")

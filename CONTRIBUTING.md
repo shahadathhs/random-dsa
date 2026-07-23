@@ -22,10 +22,12 @@ cd random-dsa
 make run N=1          # run a LeetCode solution's demo by problem number
 make list             # list all solved problems
 make test             # run every solution's demo
+make ds FILE=python/05_lists.py   # run a Python or data-structure module's demo
 make help             # show all targets
 ```
 
-Data-structure modules run directly, e.g. `python3 hash_map/hash_map.py`.
+Data-structure and algorithm modules run via the Makefile too:
+`make ds FILE=data_structures/hash_map.py`.
 
 ## Adding a LeetCode solution
 
