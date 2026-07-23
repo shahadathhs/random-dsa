@@ -55,4 +55,4 @@ Each solution imports `from _demo import section, check`; the Makefile sets
 
 - [x] `0027_remove_element.py` — Remove Element (Easy)
 - [x] `0283_move_zeroes.py` — Move Zeroes (Easy)
-- [ ] `0189_rotate_array.py` — Rotate Array (Medium)
+- [x] `0189_rotate_array.py` — Rotate Array (Medium)

@@ -29,4 +29,4 @@ Classics that every software engineer should know.
 
 - [X] **Remove Element** — shifting vs. overwriting
 - [X] **Move Zeroes** — in-place operations
-- [ ] **Rotate Array** — multiple approaches and trade-offs
+- [X] **Rotate Array** — multiple approaches and trade-offs
